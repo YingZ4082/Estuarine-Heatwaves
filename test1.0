@@ -1,0 +1,168 @@
+import xlrd #xls库
+from bokeh.plotting import figure, output_file, show
+from bokeh.plotting import figure
+from bokeh.layouts import widgetbox
+from bokeh.models.widgets import Slider
+from matplotlib import pyplot #绘图库
+
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+#import spline as spl
+#from scipy.interpolate import spline
+from scipy import optimize
+import numpy as np
+from scipy import interpolate
+
+def is_number(str):
+    try:
+        float(str)
+        return True
+    except ValueError:
+        pass
+    try:
+        import unicodedata
+        unicodedata.numeric(str)
+    except:
+        pass
+    return False
+
+
+def strs(row):
+
+    for i in range(len(row)):
+        if row[i] == '' or row[i] == '-':
+            row[i] = 'empty'
+    try:
+        values = "";
+        for i in range(len(row)):
+            if i == len(row) - 1:
+                values = values + str(row[i])
+            else:
+                values = values + str(row[i]) + " "#使用“，”逗号作为分隔符
+        return values
+    except:
+        raise
+def xls_txt(xls_name,txt_name):
+
+    try:
+        data = xlrd.open_workbook(xls_name)
+        #print("data" , data)
+        sqlfile = open(txt_name, "a")
+        table = data.sheets()[0] # 表头
+        #print(table)
+        nrows = table.nrows  # 行数
+        #如果不需跳过表头，则将下一行中1改为0
+        for ronum in range(1, nrows):
+            row = table.row_values(ronum)
+            values = strs(row) + '\n'# 条用函数，将行数据拼接成字符串
+            sqlfile.writelines(values) #将字符串写入新文件
+            #print(values)
+        sqlfile.close() # 关闭写入的文件
+    except:
+        print("Oops, something wrong")
+
+
+def deal_txt(txt_name):
+
+    with open(txt_name) as f:
+        for line in f:
+            new = line.split(' ')
+            iter = len(new) -1
+
+            for j in range(1,len(new)):
+                if new[j] == 'empty' or new[j] =='empty\n':
+                    #new[j] = 'just keep'
+                    iter = iter -1
+                    break
+
+            if iter == len(new)-1:
+                #print(j)
+                final = open('final.txt', "a")
+                final.writelines(strs(new) )
+
+
+
+def f_strait(x, A, B):
+    return A*x + B
+
+def deal_chart():
+    x_line = []
+    y_line = []
+    number = 0
+
+    with open('final.txt') as f:
+        for line in f:
+            deal = line.split(' ')
+            #print(deal)
+            if is_number(deal[len(deal)-1]) == False:
+                pass
+            else:
+                y_line.append(float(deal[len(deal)-1]))
+                x_line.append(number)
+            number = number + 1
+    #print(x_line)
+    #print(y_line)
+
+    x = np.array(x_line)
+    y = np.array(y_line)
+
+    """
+    f = interp1d(x, y)
+    f2 = interp1d(x, y, kind='cubic')
+
+    x_new = np.linspace(0, 10, num=41, endpoint=True)
+
+    plt.plot(x, y, 'o', x_new, f(x_new), '-', x_new, f2(x_new), '--')
+    plt.show()
+
+    """
+    xnew = np.arange(min(x), max(x), 0.1)
+    func = interpolate.interp1d(x,y,kind='cubic')
+    ynew = func(xnew)
+    #plt.plot(x,y,"r", linewidth = 1)
+    plt.plot(xnew, ynew)
+    #平滑曲线
+
+    A1, B1 = optimize.curve_fit(f_strait, x_line, y_line)[0]
+    x1 = np.arange(min(x_line), max(x_line), 0.1)
+    y1 = A1 * x1 + B1
+    plt.plot(x1, y1, '--',  linewidth = 2)
+    #拟合直线
+
+    poly = np.polyfit(x_line, y_line, 5)
+    y0 = np.polyval(poly, x_line)
+    plt.plot(x_line, y0,"yellow", linewidth = 1)
+    #五次拟合曲线 数字越大越极端
+
+
+    #p = figure(plot_width = 1400, plot_height = 600, title = "My first Bokeh")
+    p = figure(sizing_mode = 'stretch_both', title="My first Bokeh", y_range = [min(y)/2, max(y)+min(y)/2])
+
+    p.line(xnew, ynew , color = "grey")
+    p.line(x_line, y_line, line_width = 0.5)
+    p.line(x_line, y0, color = "yellow",line_width = 2)
+    p.line(x1,y1, color = "red", line_width = 2)
+    p.cross(x_line,y_line, fill_color = "black", size = 6)
+
+    #slider = Slider(start=0, end= 10, value = 1, step=.1, title = "my Slider")
+    #show(widgetbox(slider))
+
+    #show(p)
+
+
+
+
+    plt.ylim(min(y_line)-20, max(y_line)+20)
+    plt.xlim(0, max(x_line)+100)
+    plt.show()
+    plt.savefig('try.png', dpi = 400)
+
+
+
+if __name__ == '__main__':
+    #xls_name = input("please enter the xls file name\n")
+    #pre_part= str(xls_name[0:len(xls_name)-5])
+    #txt_name = pre_part + '.txt'
+    #xls_txt(xls_name,txt_name)
+    #deal_txt(txt_name)
+    deal_chart()
