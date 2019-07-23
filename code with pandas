@@ -1,0 +1,50 @@
+import pandas as pd
+import numpy as np
+import xlrd
+from bokeh.plotting import figure, show
+from scipy import optimize
+def f_strait(x, A, B):
+    return A*x + B
+colors = ['orange', 'gold', 'turquoise', 'green', 'brown', 'purple', 'orange']
+name_list = []
+x_line,y_line, tem, temp = [],[],[],[]
+sss = pd.read_excel("111.xlsx")
+
+for i in sss["MER Estuary -me"]:
+    if i not in name_list:
+        name_list.append(i)
+
+iters ,iter, i= 0, 0, 0
+
+
+for iter in range(0, len(sss['Date (DD/MM/YYYY)'])):
+    temp.append(sss['Date (DD/MM/YYYY)'][iter])
+    temp.append(sss['Probe Temp (°C)'][iter])
+    tem.append(temp)
+    temp = []
+for j in sorted(tem):
+    x_line.append(i)
+    y_line.append(j[1])
+    i = i+1
+
+A1, B1 = optimize.curve_fit(f_strait, x_line, y_line)[0]
+x1 = np.arange(min(x_line), max(x_line), 0.1)
+y1 = A1 * x1 + B1
+
+x_final,y_final = [],[]
+x_final.append(min(sss['Date (DD/MM/YYYY)']))
+x_final.append(max(sss['Date (DD/MM/YYYY)']))
+y_final.append(min(y1))
+y_final.append(max(y1))
+
+poly = np.polyfit(x_line,y_line, 5)
+y_poly = np.polyval(poly, x_line)
+
+f = figure(sizing_mode='stretch_both', title="", x_axis_type="datetime", y_range = [min(y_final)/2, max(y_line)+min(y_line)/4], x_axis_label = 'Time (year)', y_axis_label = 'Temp (°C)')
+for j in name_list:
+    a = sss[sss["MER Estuary -me"] == j]
+    f.circle(a['Date (DD/MM/YYYY)'], a['Probe Temp (°C)'], legend=name_list[iters], size=8, color=colors[iters])
+    iters = iters + 1
+#f.line(sorted(sss['Date (DD/MM/YYYY)']),y_poly, line_dash="4 4", line_width = 3, color = 'brown')
+f.line(x_final,y_final,line_width = 3, color = 'red')
+show(f)
