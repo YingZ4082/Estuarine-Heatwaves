@@ -1,0 +1,80 @@
+import pandas as pd
+import numpy as np
+import xlrd
+from bokeh.plotting import figure, show
+from scipy import optimize
+#type(np.float64(0).item()) # <type 'float'>
+
+
+def f_strait(x, A, B):
+    return A*x + B
+colors = ['orange', 'gold', 'turquoise', 'green', 'brown', 'purple', 'orange']
+name_list = []
+x_line,y_line, tem, temp = [],[],[],[]
+sss = pd.read_excel("111.xlsx") #把指定excel 读成需要读的pandas数据格式
+f = figure(sizing_mode='stretch_both', title="", x_axis_type="datetime", x_axis_label='Time (year)', y_axis_label='Temp (°C)')
+print(sss);
+#sss.dropna(axis=0, how='any', inplace=True)
+
+#print(type(sss["Probe Temp (°C)"][1]))
+
+
+
+for i in sss["MER Estuary -me"]: #第一循环 把所有名字加入namelist
+    if i not in name_list:
+        name_list.append(i)
+#print(name_list)
+
+#print(name_list)
+
+iters ,iter, i= 0, 0, 0
+for j in name_list: #对不同河流产生 圆点
+    a = sss[sss["MER Estuary -me"] == j]
+    #print(a)
+    a = a.sort_values(by=['Date (DD/MM/YYYY)', 'Probe Temp (°C)']) #排序 按照时间 和温度值
+    #print(a)
+    a = a.drop_duplicates('Date (DD/MM/YYYY)' ,keep = 'last') #只保证最大值的存在
+    print("YYYYYYYY")
+    #a.drop(subset=["Date (DD/MM/YYYY)"],keep='first',inplace=False)
+    #print(a)
+    f.circle(a['Date (DD/MM/YYYY)'], a['Probe Temp (°C)'], legend=name_list[iters], size = 8,color = colors[iters])
+    iters = iters +1
+
+
+for iter in range(0, len(sss['Date (DD/MM/YYYY)'])): #把表格按顺序排序 没区分河流 统一安排
+    temp.append(sss['Date (DD/MM/YYYY)'][iter])
+    temp.append(sss['Probe Temp (°C)'][iter])
+    #print(type(sss['Probe Temp (°C)'][iter]))
+    tem.append(temp)
+    temp = []
+#print(tem)
+#print(sorted(tem))
+#print( tem,'\n');
+#print(sorted(tem));
+#print(tem[6][1])
+
+#print(type(tem[6][1]))
+
+
+for j in sorted(tem):
+    x_line.append(i)
+    y_line.append(j[1])
+    i = i+1
+
+A1, B1 = optimize.curve_fit(f_strait, x_line, y_line)[0] #scipy库中的函数 拟合直线
+print(A1,B1)
+x1 = np.arange(min(x_line), max(x_line), 0.1)
+y1 = A1 * x1 + B1 #拟合后的值
+
+x_final,y_final = [],[] #初始化两个数组
+x_final.append(min(sss['Date (DD/MM/YYYY)']))#append是数组添加
+x_final.append(max(sss['Date (DD/MM/YYYY)']))
+y_final.append(min(y1))
+y_final.append(max(y1))
+
+poly = np.polyfit(x_line,y_line, 5)
+y_poly = np.polyval(poly, x_line)
+
+#f.line(sorted(sss['Date (DD/MM/YYYY)']),y_poly, line_dash="4 4", line_width = 3, color = 'brown')
+f.line(x_final,y_final,line_width = 3, color = 'red')
+show(f)
